@@ -57,16 +57,25 @@ class ProcessProductJob implements ShouldQueue
     private function processVariations(Product $product, ?string $variations)
     {
         $product->variations()->delete(); // delete old variations
-
+    
         if ($variations) {
             $variationsArray = json_decode($variations, true);
-
+    
             if (is_array($variationsArray)) {
                 foreach ($variationsArray as $variation) {
-                    $product->variations()->create([
-                        'name' => $variation['name'],
-                        'value' => $variation['value']
-                    ]);
+                    if (isset($variation['name']) && isset($variation['value'])) {
+                        $product->variations()->create([
+                            'name' => $variation['name'],
+                            'value' => $variation['value']
+                        ]);
+                    } else {
+                        foreach ($variation as $name => $value) {
+                            $product->variations()->create([
+                                'name' => $name,
+                                'value' => $value
+                            ]);
+                        }
+                    }
                 }
             }
         }

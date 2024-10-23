@@ -14,22 +14,23 @@ class ImportProducts extends Command
      *
      * @var string
      */
-    protected $signature = 'import:products';
+    protected $signature = 'import:products {source}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Imports products from CSV file into database';
+    protected $description = 'Imports products from source (csv or api) into database';
 
     /**
      * Execute the console command.
      *
      * @return int
      */
-    public function handle()
+    public function handle($source)
     {
+
 
         $filePath = storage_path('app/products.csv');
 
@@ -48,7 +49,6 @@ class ImportProducts extends Command
             // skip the header
             if ($key === 0) {
                 continue;
-            }
 
             // csv structre: id, name, sku, price, currency, variations, quantity, status
             [$id, $name, $sku, $price, $currency, $variations, $quantity, $status] = array_pad($row, 8, null);
@@ -72,6 +72,8 @@ class ImportProducts extends Command
             ]);
 
         $this->info('Products is being processing.');
+
         return 0;
     }
 }
+
