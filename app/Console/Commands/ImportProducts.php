@@ -5,10 +5,8 @@ namespace App\Console\Commands;
 use App\Enums\ProductDeletionReason;
 use Illuminate\Console\Command;
 use App\Models\Product;
-use App\Models\ProductVariation;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ImportProducts extends Command
 {
@@ -24,7 +22,7 @@ class ImportProducts extends Command
      *
      * @var string
      */
-    protected $description = 'Imports products into database';
+    protected $description = 'Imports products from CSV file into database';
 
     /**
      * Execute the console command.
@@ -33,6 +31,9 @@ class ImportProducts extends Command
      */
     public function handle()
     {
+        // $productVariation = \App\Models\Product::find(10450);
+        // dd($productVariation->variations, $productVariation->variations);
+
         $filePath = storage_path('app/products.csv');
 
         if (!file_exists($filePath)) {
@@ -47,7 +48,7 @@ class ImportProducts extends Command
         $importedProductIds = [];
         $invalidImportedProductIds = [];
 
-        DB::transaction(function () use ($lines, &$importedProductIds) {
+        DB::transaction(function () use ($lines, &$importedProductIds, &$invalidImportedProductIds) {
             foreach ($lines as $key => $line) {
 
                 // skip the header
@@ -61,7 +62,9 @@ class ImportProducts extends Command
                 $importedProductIds[] = $id;
 
                 if (!is_numeric($price) || $price < 0 || $price > 99999.99) {
-                    $this->info("Invalid price for row with ID of $key, price:" . $price);
+                    $this->comment("Invalid price for row with ID of $key, price:" . $price);
+                    $invalidImportedProductIds[] = $id;
+
                     continue;
                 }
 
@@ -82,10 +85,14 @@ class ImportProducts extends Command
                         $this->processVariations($product, $variations);
                     }
                 } catch (UniqueConstraintViolationException $ex) {
-                    $this->info("Duplicate entry for row with ID of $key, please verify ID and SKU"); // todo: work on exception message to retreive wich column is duplicated 
+                    $this->comment("Duplicate entry for row with ID of $key, please verify ID and SKU"); // todo: work on exception message to retreive wich column is duplicated 
+                    $invalidImportedProductIds[] = $id;
+
                     continue;
                 }
             }
+
+            $this->warn('Invalid product IDs: ' . implode(',', $invalidImportedProductIds));
 
             // soft delete all products not in the csv file and mark their deletion reason
             Product::whereNotIn('id', $importedProductIds)
