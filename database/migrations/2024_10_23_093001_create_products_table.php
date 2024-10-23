@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('name')->nullable();
-            $table->string('sku')->unique()->nullable();
+            $table->string('name')->nullable()->index();
+            $table->string('sku')->unique()->nullable()->index();
             $table->string('status')->nullable();
             $table->decimal('price', 7, 2)->nullable();
             // $table->decimal('quantity')->nullable();
