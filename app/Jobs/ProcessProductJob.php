@@ -3,53 +3,57 @@
 namespace App\Jobs;
 
 use App\Models\Product;
+use App\Services\ProductProviders\Classes\ProductObject;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\SerializesModels;
 
 class ProcessProductJob implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SerializesModels;
 
-    protected $productData;
+    /**
+     * @var ProductObject $productObject
+     */
+    protected $productObject;
 
-    public function __construct($productData)
+    public function __construct($productObject)
     {
-        $this->productData = $productData;
+        $this->productObject = $productObject;
     }
 
     public function handle(): void
     {
-        [$id, $name, $sku, $price, $currency, $variations, $quantity, $status] = $this->productData;
         try {
             
-                $product = Product::find($id);
+                $product = Product::find($this->productObject->getId());
                 if (!$product) {
                     $product = Product::create([
-                        'id' => $id,
-                        'name' => $name,
-                        'sku' => empty($sku) ? null : $sku,
-                        'status' => $status,
-                        'price' => $price,
-                        'currency' => $currency
+                        'id' => $this->productObject->getId(),
+                        'name' => $this->productObject->getName(),
+                        'sku' => empty($this->productObject->getSku()) ? null : $this->productObject->getSku(),
+                        'status' => $this->productObject->getStatus(),
+                        'price' => $this->productObject->getPrice(),
+                        'currency' => $this->productObject->getCurrency(),
                     ]);
                 } else {
-                    if ($this->shouldUpdateProduct($product, $price, $status, $name, $sku, $currency, $quantity, $variations)) {
+                    if ($this->shouldUpdateProduct($product, $this->productObject)) {
                         $product->update([
-                            'name' => trim($name),
-                            'sku' => empty($sku) ? null : trim($sku),
-                            'status' => trim($status),
-                            'price' => trim($price),
-                            'currency' => trim($currency)
+                            'name' => trim($this->productObject->getName()),
+                            'sku' => empty($this->productObject->getSku()) ? null : trim($this->productObject->getSku()),
+                            'status' => trim($this->productObject->getStatus()),
+                            'price' => trim($this->productObject->getPrice()),
+                            'currency' => trim($this->productObject->getCurrency())
                         ]);
                     }
                 }
 
-            if ($variations) {
+            if ($variations = $this->productObject->getVariations()) {
                 $this->processVariations($product, $variations);
             }
         } catch (QueryException $ex) { // could be thrown bcuz of the sku unique constraint, invalid column type..
-            throw $ex; // we can log the execption or notify the admin
+            // throw $ex; // we can log the execption or notify the admin
             // throw it again or just do not catch it to let us have the possibility to retry the failed job
         }
     }
@@ -81,14 +85,13 @@ class ProcessProductJob implements ShouldQueue
         }
     }
 
-    private function shouldUpdateProduct(Product $product, $price, $status, $name, $sku, $currency, $quantity): bool
+    private function shouldUpdateProduct(Product $product, ProductObject $productObject): bool
     {
         // the variations check is a little bit heavy so we just update the variations however
-        return $product->name !== $name
-            || $product->sku !== $sku
-            || $product->status !== $status
-            || $product->price !== $price
-            || $product->currency !== $currency
-            || $product->quantity !== $quantity;
+        return $product->name !== $productObject->getName()
+            || $product->sku !== $productObject->getSku()
+            || $product->status !== $productObject->getStatus()
+            || $product->price !== $productObject->getPrice()
+            || $product->currency !== $productObject->getCurrency();
     }
 }

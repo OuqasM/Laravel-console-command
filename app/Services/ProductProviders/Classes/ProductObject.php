@@ -5,154 +5,181 @@ namespace App\Services\ProductProviders\Classes;
 class ProductObject
 {
     /**
-     * @var int
+     * @var int|null
      */
     private $id;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $name;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $sku;
 
     /**
-     * @var float
+     * @var float|null
      */
     private $price;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $currency;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $variations;
 
     /**
-     * @var int
+     * @var int|null
      */
     private $quantity;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $status;
 
+
+    public function __construct()
+    {
+    }
+
     /**
-     * @return int
+     * @return int|null
      */
-    public function getId(): int
+    public function getId(): ?int
     {
         return $this->id;
     }
 
     /**
-     * @param int $id
+     * @param int|null $id
+     * @return $this
      */
-    public function setId(int $id): void
+    public function setId(?int $id): self
     {
         $this->id = $id;
+
+        return $this;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }
 
     /**
-     * @param string $name
+     * @param string|null $name
+     * @return $this
      */
-    public function setName(string $name): void
+    public function setName(?string $name): self
     {
         $this->name = $name;
+
+        return $this;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getSku(): string
+    public function getSku(): ?string
     {
         return $this->sku;
     }
 
     /**
-     * @param string $sku
+     * @param string|null $sku
+     * @return $this
      */
-    public function setSku(string $sku): void
+    public function setSku(?string $sku): self
     {
         $this->sku = $sku;
+
+        return $this;
     }
 
     /**
-     * @return float
+     * @return float|null
      */
-    public function getPrice(): float
+    public function getPrice(): ?float
     {
         return $this->price;
     }
 
     /**
-     * @param float $price
+     * @param float|null $price
+     * @return $this
      */
-    public function setPrice(float $price): void
+    public function setPrice(?float $price): self
     {
         $this->price = $price;
+
+        return $this;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getCurrency(): string
+    public function getCurrency(): ?string
     {
         return $this->currency;
     }
 
     /**
-     * @param string $currency
+     * @param string|null $currency
+     * @return $this
      */
-    public function setCurrency(string $currency): void
+    public function setCurrency(?string $currency): self
     {
         $this->currency = $currency;
+
+        return $this;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getVariations(): string
+    public function getVariations(): ?string
     {
         return $this->variations;
     }
 
     /**
-     * @param string $variations
+     * @param string|null $variations
+     * @return $this
      */
-    public function setVariations(string $variations): void
+    public function setVariations(?string $variations): self
     {
         $this->variations = $variations;
+
+        return $this;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getStatus(): string
+    public function getStatus(): ?string
     {
         return $this->status;
     }
 
     /**
-     * @param string $status
+     * @param string|null $status
+     * @return $this
      */
-    public function setStatus(string $status): void
+    public function setStatus(?string $status): self
     {
         $this->status = $status;
+
+        return $this;
     }
 }
+

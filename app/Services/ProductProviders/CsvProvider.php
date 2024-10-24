@@ -1,1 +1,58 @@
+<?php
 
+namespace App\Services\ProductProviders;
+
+use App\Services\ProductProviders\Classes\ProductObject;
+use Illuminate\Support\Collection;
+
+class CsvProvider extends BaseProvider
+{
+
+    public function __construct()
+    {
+    }
+
+    public function fetchAllProducts(): array
+    {
+        $filePath = storage_path('app/products.csv');
+
+        if (!file_exists($filePath)) {
+            throw new \Exception("CSV file not found.");
+        }
+
+        $contents = file_get_contents($filePath);
+        $rows = array_map('str_getcsv', explode("\n", $contents));
+
+        return array_slice($rows, 1);
+    }
+
+    public function mapProduct(array $product): Collection
+    {
+        $collect = new Collection();
+        foreach ($product as $key => $row) {
+
+            // csv structre: id, name, sku, price, currency, variations, quantity, status
+            [$id, $name, $sku, $price, $currency, $variations, $quantity, $status] = array_pad($row, 8, null);
+
+
+            if (!is_numeric($price) || $price < 0 || $price > 99999.99) {
+                // $this->comment("Invalid price for row with ID of $key, price:" . $price);
+                continue;
+            }
+
+            $productObject = new ProductObject();
+            $productObject
+                ->setId($id)
+                ->setName($name)
+                ->setSku($sku)
+                ->setPrice($price)
+                ->setCurrency($currency)
+                ->setVariations($variations)
+                ->setStatus($status);
+
+            $collect->push($productObject);
+        }
+
+        return $collect;
+    }
+}

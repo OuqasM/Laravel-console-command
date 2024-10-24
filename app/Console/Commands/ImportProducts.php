@@ -3,9 +3,14 @@
 namespace App\Console\Commands;
 
 use App\Enums\ProductDeletionReason;
+use App\Enums\ProviderSourceTypeEnum;
 use App\Jobs\ProcessProductJob;
-use Illuminate\Console\Command;
 use App\Models\Product;
+use App\Services\ProductProviders\ApiProvider;
+use App\Services\ProductProviders\BaseProvider;
+use App\Services\ProductProviders\Classes\ProductObject;
+use App\Services\ProductProviders\CsvProvider;
+use Illuminate\Console\Command;
 
 class ImportProducts extends Command
 {
@@ -24,56 +29,87 @@ class ImportProducts extends Command
     protected $description = 'Imports products from source (csv or api) into database';
 
     /**
+     * @var BaseProvider $productProvider;
+     */
+    protected $productProvider;
+
+    /**
+     * @var string $source;
+     */
+    protected $source;
+
+    /**
      * Execute the console command.
      *
      * @return int
      */
-    public function handle($source)
+    public function handle()
     {
+        $this->setOptions();
+        $this->setProductProviderBaseOnSource();
 
+        $products = $this->productProvider->fetchAllProducts();
+        $mappedProducts = $this->productProvider->mapProduct($products);
 
-        $filePath = storage_path('app/products.csv');
+        $importedProductIds = $mappedProducts->map(function (ProductObject $productObject) {
+            return $productObject->getId();
+        })->toArray();
 
-        if (!file_exists($filePath)) {
-            $this->error("CSV file not found.");
-            return 1;
-        }
+        $deletedProductsIds = $mappedProducts->filter(function ($product) {
+            return $product->getStatus() === 'deleted'; // also status can be enumed
+        })->map(function ($product) {
+            return $product->getId();
+        })->toArray();
 
-        $contents = file_get_contents($filePath);
-        $rows = array_map('str_getcsv', explode("\n", $contents));
+        $this->dispatchProcessProductJobs($mappedProducts);
 
-        // keep product IDs for synchronzation
-        $importedProductIds = [];
+        $this->softDeleteProductsNotInCsvAndMarkDeletionReason(
+            $importedProductIds,
+            $deletedProductsIds
+        );
 
-        foreach ($rows as $key => $row) {
-            // skip the header
-            if ($key === 0) {
-                continue;
-
-            // csv structre: id, name, sku, price, currency, variations, quantity, status
-            [$id, $name, $sku, $price, $currency, $variations, $quantity, $status] = array_pad($row, 8, null);
-
-            $importedProductIds[] = $id;
-
-            if (!is_numeric($price) || $price < 0 || $price > 99999.99) {
-                $this->comment("Invalid price for row with ID of $key, price:" . $price);
-                continue;
-            }
-
-            ProcessProductJob::dispatch([$id, $name, $sku, $price, $currency, $variations, $quantity, $status]);
-        }
-
-        // soft delete all products not in the csv file and mark their deletion reason
-        Product::whereNotIn('id', $importedProductIds)
-            ->whereNull('deleted_at')
-            ->update([
-                'deleted_at' => now(),
-                'deletion_reason' => ProductDeletionReason::SYNCHRONIZATION
-            ]);
-
-        $this->info('Products is being processing.');
+        $this->info( count($importedProductIds) . ' Products are being processing.');
 
         return 0;
+    }
+
+    private function setOptions(): void
+    {
+        $this->source = strtolower($this->argument('source'));
+    }
+
+    private function setProductProviderBaseOnSource()
+    {
+        switch ($this->source) {
+            case ProviderSourceTypeEnum::CSV->value:
+                $this->productProvider = new CsvProvider();
+                break;
+            case ProviderSourceTypeEnum::API->value:
+                $this->productProvider = new ApiProvider();
+                break;
+            default:
+                throw new \Exception('Invalid source');
+        }
+    }
+
+    private function dispatchProcessProductJobs($mappedProducts)
+    {
+        foreach ($mappedProducts as $product) {
+            ProcessProductJob::dispatch($product);
+        }
+    }
+
+    private function softDeleteProductsNotInCsvAndMarkDeletionReason($importedProductIds, $deletedProductsIds) // this method can also be queued
+    {
+        Product::where(function ($query) use ($importedProductIds, $deletedProductsIds) {
+            $query->whereNotIn('id', $importedProductIds)
+                  ->orWhereIn('id', $deletedProductsIds);
+        })
+        ->whereNull('deleted_at') // to skip prds already soft deleted
+        ->update([
+            'deleted_at' => now(),
+            'deletion_reason' => ProductDeletionReason::SYNCHRONIZATION
+        ]);
     }
 }
 
