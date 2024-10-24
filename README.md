@@ -1,4 +1,4 @@
-# Laravel Project Setup with Laravel Sail
+# Sync products based on diffirent source types
 =============================================
 
 A command console that imports data from several different sources such as CSV/Api based on what you provided in the command
