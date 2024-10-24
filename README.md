@@ -46,3 +46,19 @@ or
 
     ./vendor/bin/sail artisan import:products csv
     # make sure you put the file products.csv on Storage/app directory
+
+### 8. Set up cron
+
+To ensure scheduled sync api products daily at 12AM, set up a cron job:
+
+1. Open the crontab editor:
+
+    ```bash
+    crontab -e
+    ```
+
+2. Add the following line to the crontab file:
+
+    ```bash
+    * * * * * cd /path/to/your/project && ./vendor/bin/sail artisan schedule:run >> /dev/null 2>&1
+    ```
