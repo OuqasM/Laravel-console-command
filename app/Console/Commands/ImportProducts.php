@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\ProductDeletionReason;
 use App\Enums\ProviderSourceTypeEnum;
 use App\Jobs\ProcessProductJob;
+use App\Jobs\SoftDeleteProductJob;
 use App\Models\Product;
 use App\Services\ProductProviders\ApiProvider;
 use App\Services\ProductProviders\BaseProvider;
@@ -68,7 +69,7 @@ class ImportProducts extends Command
 
         $this->dispatchProcessProductJobs($mappedProducts);
 
-        $this->softDeleteProductsNotInCsvAndMarkDeletionReason(
+        $this->softDeleteMissingProductOrMarkedAsDeleted(
             $importedProductIds,
             $deletedProductsIds
         );
@@ -109,17 +110,9 @@ class ImportProducts extends Command
         }
     }
 
-    private function softDeleteProductsNotInCsvAndMarkDeletionReason($importedProductIds, $deletedProductsIds) // this method can also be queued
+    private function softDeleteMissingProductOrMarkedAsDeleted($importedProductIds, $deletedProductsIds)
     {
-        Product::where(function ($query) use ($importedProductIds, $deletedProductsIds) {
-            $query->whereNotIn('id', $importedProductIds)
-                  ->orWhereIn('id', $deletedProductsIds);
-        })
-        ->whereNull('deleted_at') // to skip prds already soft deleted
-        ->update([
-            'deleted_at' => now(),
-            'deletion_reason' => ProductDeletionReason::SYNCHRONIZATION
-        ]);
+        SoftDeleteProductJob::dispatch($importedProductIds, $deletedProductsIds);
     }
 }
 
