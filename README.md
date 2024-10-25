@@ -46,6 +46,7 @@ or
 
     ./vendor/bin/sail artisan import:products csv
     # make sure you put the file products.csv on Storage/app directory
+    # you can also pass a parameter specifying the path to the csv fils adding: --csv_full_path=path_to_your_csv
 
 ### 8. Set up cron
 

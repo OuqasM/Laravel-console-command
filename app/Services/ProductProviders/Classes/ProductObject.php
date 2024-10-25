@@ -2,8 +2,12 @@
 
 namespace App\Services\ProductProviders\Classes;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class ProductObject
 {
+    use HasFactory;
+
     /**
      * @var int|null
      */

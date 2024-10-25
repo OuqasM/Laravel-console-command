@@ -19,7 +19,7 @@ class ImportProducts extends Command
      *
      * @var string
      */
-    protected $signature = 'import:products {source}';
+    protected $signature = 'import:products {source} {--csv_full_path=}';
 
     /**
      * The console command description.
@@ -37,6 +37,11 @@ class ImportProducts extends Command
      * @var string $source;
      */
     protected $source;
+
+    /**
+     * @var string $csvFullPath
+     */
+    protected $csvFullPath;
 
     /**
      * Execute the console command.
@@ -68,7 +73,7 @@ class ImportProducts extends Command
             $deletedProductsIds
         );
 
-        $this->info( count($importedProductIds) . ' Products are being processing.');
+        $this->info(count($importedProductIds) . " Products are being processing.");
 
         return 0;
     }
@@ -76,13 +81,18 @@ class ImportProducts extends Command
     private function setOptions(): void
     {
         $this->source = strtolower($this->argument('source'));
+        $this->csvFullPath = $this->option('csv_full_path');
     }
 
     private function setProductProviderBaseOnSource()
     {
         switch ($this->source) {
             case ProviderSourceTypeEnum::CSV->value:
+                /**
+                 * @var CsvProvider $productProvider
+                 */
                 $this->productProvider = new CsvProvider();
+                $this->productProvider->setCsvFullPath($this->csvFullPath);
                 break;
             case ProviderSourceTypeEnum::API->value:
                 $this->productProvider = new ApiProvider();

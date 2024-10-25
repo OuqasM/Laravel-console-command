@@ -8,16 +8,32 @@ use Illuminate\Support\Collection;
 class CsvProvider extends BaseProvider
 {
 
+    protected $csvFullPath;
+
     public function __construct()
     {
     }
 
+    public function setCsVFullPath(string $csvFullPath): self
+    {
+        $this->csvFullPath = $csvFullPath;
+
+        return $this;
+    }
+
+    public function getCsvFullPath(): string
+    {
+        return $this->csvFullPath;
+    }
+
     public function fetchAllProducts(): array
     {
-        $filePath = storage_path('app/products.csv');
-
+        $filePath = file_exists($this->getCsvFullPath()) 
+            ? $this->getCsvFullPath() 
+            : storage_path('app/products.csv');
+    
         if (!file_exists($filePath)) {
-            throw new \Exception("CSV file not found.");
+            throw new \Exception("CSV file not found: " . $filePath);
         }
 
         $contents = file_get_contents($filePath);
